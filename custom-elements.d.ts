@@ -1,34 +1,44 @@
+// Define VideoPlayer element for React JSX
 declare namespace JSX {
   interface IntrinsicElements {
-    // Note: quotes around the element name is important for kebab-case names
-    "video-player": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+    'video-player': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
       src?: string;
       poster?: string;
       autoplay?: string;
       controls?: string;
       muted?: string;
       loop?: string;
-      ref?: React.RefObject<HTMLElement>;
+      type?: string;
     };
   }
 }
 
-// Define custom events
-interface CustomEventMap {
-  'videotimeupdate': CustomEvent<{
-    currentTime: number;
-    duration: number;
-  }>;
-  'videoended': CustomEvent<void>;
+// Define custom events for the VideoPlayer element
+interface VideoTimeUpdateDetail {
+  currentTime: number;
+  duration: number;
 }
 
-// Declare the VideoPlayer interface
+interface VideoPlayerErrorDetail {
+  error: MediaError | null;
+}
+
+interface CustomEventMap {
+  'videotimeupdate': CustomEvent<VideoTimeUpdateDetail>;
+  'videoended': CustomEvent<void>;
+  'videoerror': CustomEvent<VideoPlayerErrorDetail>;
+}
+
+// Define methods and properties for the VideoPlayer element
 interface VideoPlayerElement extends HTMLElement {
+  // Methods
   play(): void;
   pause(): void;
   seekTo(time: number): void;
+  setVolume(volume: number): void;
+  toggleMuteVideo(): void;
   
-  // Add event listener overloads
+  // Event listener overloads for custom events
   addEventListener<K extends keyof CustomEventMap>(
     type: K,
     listener: (this: VideoPlayerElement, ev: CustomEventMap[K]) => void,

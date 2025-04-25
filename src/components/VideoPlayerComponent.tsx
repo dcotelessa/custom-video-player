@@ -1,23 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import './video-player'; // Import the custom element definition
 
-// Declare the video player element for TypeScript
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'video-player': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        src?: string;
-        poster?: string;
-        autoplay?: string;
-        controls?: string;
-        muted?: string;
-        loop?: string;
-        ref?: React.Ref<HTMLElement>;
-      };
-    }
-  }
-}
-
+// Import the VideoTimeUpdateDetail interface from our types
 interface VideoTimeUpdateDetail {
   currentTime: number;
   duration: number;
@@ -30,31 +14,30 @@ interface VideoPlayerComponentProps {
   controls?: boolean;
   muted?: boolean;
   loop?: boolean;
+  type?: string;
   onTimeUpdate?: (detail: VideoTimeUpdateDetail) => void;
   onEnded?: () => void;
+  onError?: (detail: { error: MediaError | null }) => void;
 }
 
-// Interface for the custom element methods we want to access
-interface VideoPlayerElement extends HTMLElement {
-  play: () => void;
-  pause: () => void;
-  seekTo: (time: number) => void;
-  setVolume: (volume: number) => void;
-  toggleMuteVideo: () => void;
-}
-
-const VideoPlayerComponent: React.FC<VideoPlayerComponentProps> = ({ 
+// Use the global VideoPlayerElement interface defined in custom-elements.d.ts
+const VideoPlayerComponent = forwardRef<HTMLElement, VideoPlayerComponentProps>(({ 
   src, 
   poster, 
   autoplay = false, 
   controls = false, 
   muted = false,
   loop = false,
+  type,
   onTimeUpdate,
-  onEnded
-}) => {
-  // Use properly typed ref
+  onEnded,
+  onError
+}, ref) => {
+  // Use the VideoPlayerElement interface for proper typing
   const playerRef = useRef<VideoPlayerElement | null>(null);
+  
+  // Forward the ref to the parent component
+  useImperativeHandle(ref, () => playerRef.current as HTMLElement);
   
   useEffect(() => {
     // Get reference to custom element
@@ -76,7 +59,12 @@ const VideoPlayerComponent: React.FC<VideoPlayerComponentProps> = ({
     };
     
     const handleError = (e: Event) => {
-      console.error('Video error event received in React:', (e as CustomEvent).detail);
+      if (onError) {
+        const customEvent = e as CustomEvent<{error: MediaError | null}>;
+        onError(customEvent.detail);
+      } else {
+        console.error('Video error event received in React:', (e as CustomEvent).detail);
+      }
     };
     
     if (videoPlayerElement) {
@@ -93,7 +81,7 @@ const VideoPlayerComponent: React.FC<VideoPlayerComponentProps> = ({
         videoPlayerElement.removeEventListener('videoerror', handleError);
       }
     };
-  }, [onTimeUpdate, onEnded]);
+  }, [onTimeUpdate, onEnded, onError]);
   
   // Create props object for the custom element
   const videoProps: Record<string, string> = {};
@@ -103,6 +91,7 @@ const VideoPlayerComponent: React.FC<VideoPlayerComponentProps> = ({
   if (controls) videoProps.controls = '';
   if (muted) videoProps.muted = '';
   if (loop) videoProps.loop = '';
+  if (type) videoProps.type = type;
   
   return (
     <div className="video-player-wrapper">
@@ -113,6 +102,6 @@ const VideoPlayerComponent: React.FC<VideoPlayerComponentProps> = ({
       })}
     </div>
   );
-};
+});
 
 export default VideoPlayerComponent;
